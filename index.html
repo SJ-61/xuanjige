@@ -545,7 +545,7 @@ async function callAI(prompt, sysPrompt) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + C.key },
       body: JSON.stringify({
-        model: 'deepseek-chat',
+        model: 'deepseek-v4-flash',
         messages: [
           { role: 'system', content: sysPrompt || '你是一位精通八字命理、五行生克的中国传统玄学大师。回答需专业、有深度，风格古朴典雅，分点清晰。' },
           { role: 'user', content: prompt }
