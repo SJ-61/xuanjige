@@ -1,0 +1,984 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+  <title>玄机阁 - AI命理大师</title>
+<meta name="description" content="AI驱动的八字排盘与命理解读，知命顺势悟道">
+<meta name="theme-color" content="#8B2500">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="玄机阁">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%238B2500'/><text x='50' y='68' font-size='55' text-anchor='middle' fill='white' font-family='serif'>命</text></svg>">
+<style>
+/* ===== 全局变量 ===== */
+:root {
+  --ink: #1a1a1a;
+  --ink-light: #4a4a4a;
+  --ink-muted: #8a8a8a;
+  --paper: #F4EFE6;
+  --paper-dark: #E5DDD0;
+  --paper-card: #FFFBF5;
+  --gold: #C9A96E;
+  --gold-dark: #A07D40;
+  --gold-light: #E8D5A3;
+  --red: #8B2500;
+  --red-dark: #6B1C00;
+  --jade: #4A7C59;
+  --jade-light: #7CAF8A;
+  --shadow-sm: 0 1px 4px rgba(0,0,0,0.06);
+  --shadow: 0 2px 12px rgba(0,0,0,0.08);
+  --shadow-lg: 0 4px 24px rgba(0,0,0,0.14);
+  --radius: 10px;
+  --radius-sm: 6px;
+  --radius-lg: 16px;
+  --safe-bottom: env(safe-area-inset-bottom, 16px);
+}
+
+*{margin:0;padding:0;box-sizing:border-box}
+
+body{
+  font-family: "PingFang SC", "Noto Serif SC", "Source Han Serif SC", "STSong", "SimSun", "Songti SC", "KaiTi", serif;
+  background: var(--paper);
+  color: var(--ink);
+  min-height: 100dvh;
+  max-width: 500px;
+  margin: 0 auto;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+  position: relative;
+}
+
+/* 水墨底纹 */
+body::before{
+  content:'';
+  position:fixed;inset:0;
+  background:
+    radial-gradient(ellipse 80% 60% at 85% 5%, rgba(201,169,110,0.10) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 10% 88%, rgba(139,37,0,0.05) 0%, transparent 55%),
+    radial-gradient(ellipse 50% 40% at 45% 50%, rgba(74,124,89,0.04) 0%, transparent 70%);
+  pointer-events:none;z-index:0;
+}
+
+/* ===== 页面 ===== */
+.page{display:none;padding:0 16px 80px;position:relative;z-index:1;min-height:100dvh}
+.page.active{display:block;animation:pageIn .32s ease}
+@keyframes pageIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+/* ===== 导航栏 ===== */
+.nav{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:12px 16px;
+  background:rgba(244,239,230,0.94);
+  backdrop-filter:blur(12px);
+  -webkit-backdrop-filter:blur(12px);
+  position:sticky;top:0;z-index:100;
+  border-bottom:0.5px solid rgba(0,0,0,0.06);
+}
+.nav-btn{
+  width:34px;height:34px;border-radius:50%;border:1px solid var(--paper-dark);
+  background:var(--paper-card);display:flex;align-items:center;justify-content:center;
+  cursor:pointer;font-size:16px;color:var(--ink-light);transition:all .2s;
+  flex-shrink:0;
+}
+.nav-btn:active{background:var(--paper-dark);transform:scale(.94)}
+.nav-title{font-size:17px;font-weight:500;letter-spacing:3px;color:var(--ink)}
+.nav-spacer{width:34px}
+
+/* ===== 首页 ===== */
+.hero{padding:28px 0 16px;text-align:center}
+.hero .logo{
+  width:68px;height:68px;margin:0 auto 14px;
+  background:linear-gradient(135deg, var(--red), #A04030);
+  border-radius:18px;display:flex;align-items:center;justify-content:center;
+  font-size:34px;color:#fff;box-shadow:0 6px 24px rgba(139,37,0,.25);
+  letter-spacing:2px;
+}
+.hero h1{font-size:26px;font-weight:500;letter-spacing:8px;color:var(--ink)}
+.hero .sub{font-size:12px;color:var(--ink-muted);letter-spacing:4px;margin-top:4px}
+
+/* 每日运势卡片 */
+.daily-banner{
+  background:linear-gradient(135deg, #291810, #3A2216);
+  border-radius:var(--radius-lg);padding:20px 22px;margin:8px 0 18px;
+  color:#fff;position:relative;overflow:hidden;cursor:pointer;
+  transition:transform .2s,box-shadow .2s;
+  box-shadow:0 4px 16px rgba(0,0,0,.15);
+}
+.daily-banner:active{transform:scale(.98)}
+.daily-banner::before{
+  content:'';position:absolute;top:-24px;right:-24px;
+  width:100px;height:100px;
+  background:radial-gradient(circle, rgba(201,169,110,.28), transparent);
+  border-radius:50%;
+}
+.daily-banner .day-label{font-size:11px;letter-spacing:4px;opacity:.6}
+.daily-banner .day-text{font-size:15px;font-weight:500;margin:8px 0 4px;letter-spacing:1px}
+.daily-banner .day-date{font-size:11px;opacity:.45}
+
+/* 功能网格 */
+.func-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px}
+.func-card{
+  background:var(--paper-card);border:1px solid var(--paper-dark);
+  border-radius:var(--radius);padding:18px 14px;cursor:pointer;
+  transition:all .2s;position:relative;overflow:hidden;
+}
+.func-card:active{transform:scale(.97)}
+.func-card .fc-icon{font-size:30px;margin-bottom:8px}
+.func-card .fc-name{font-size:14px;font-weight:500;letter-spacing:1px;color:var(--ink)}
+.func-card .fc-desc{font-size:11px;color:var(--ink-muted);margin-top:3px;line-height:1.4}
+.func-card .badge{
+  position:absolute;top:8px;right:8px;font-size:10px;padding:2px 7px;
+  border-radius:10px;color:#fff;letter-spacing:1px;
+}
+.badge-free{background:var(--jade)}
+.badge-pro{background:var(--gold-dark)}
+
+/* ===== 表单卡片 ===== */
+.card{
+  background:var(--paper-card);border-radius:var(--radius);padding:22px 18px;
+  margin:14px 0;border:1px solid var(--paper-dark);
+}
+.card-title{
+  font-size:16px;font-weight:500;letter-spacing:2px;text-align:center;
+  margin-bottom:18px;color:var(--ink);
+}
+.form-group{margin-bottom:14px}
+.form-group label{display:block;font-size:12px;color:var(--ink-muted);margin-bottom:5px;letter-spacing:1px}
+.form-input{
+  width:100%;padding:11px 14px;border:1px solid var(--paper-dark);
+  border-radius:var(--radius-sm);font-size:14px;font-family:inherit;
+  background:var(--paper);color:var(--ink);outline:none;transition:border-color .2s;
+  -webkit-appearance:none;
+}
+.form-input:focus{border-color:var(--gold);background:var(--paper-card)}
+.form-row{display:flex;gap:10px}
+.form-row .form-group{flex:1}
+select.form-input{
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238a8a8a' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 12px center;padding-right:32px;
+}
+
+/* ===== 按钮 ===== */
+.btn{
+  display:block;width:100%;padding:13px;border:none;border-radius:var(--radius-sm);
+  font-size:15px;font-family:inherit;font-weight:500;letter-spacing:2px;
+  cursor:pointer;transition:all .2s;
+}
+.btn:active{transform:scale(.98)}
+.btn-primary{
+  background:linear-gradient(135deg, var(--red), var(--red-dark));
+  color:#fff;box-shadow:0 4px 14px rgba(139,37,0,.28);
+}
+.btn-gold{
+  background:linear-gradient(135deg, var(--gold), var(--gold-dark));
+  color:#fff;box-shadow:0 4px 14px rgba(160,125,64,.28);
+}
+.btn-outline{
+  background:var(--paper-card);color:var(--ink);
+  border:1.5px solid var(--paper-dark);
+}
+.btn-outline:active{background:var(--paper)}
+.btn-sm{display:inline-block;width:auto;padding:8px 22px;font-size:13px;letter-spacing:1px}
+
+/* ===== 八字盘 ===== */
+.bazi-grid{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:14px 0;
+}
+.bazi-cell{
+  text-align:center;padding:14px 6px;background:var(--paper);
+  border-radius:var(--radius-sm);border:1px solid var(--paper-dark);
+}
+.bazi-cell .pillar{font-size:10px;color:var(--ink-muted);letter-spacing:1px;margin-bottom:6px}
+.bazi-cell .tg{font-size:22px;font-weight:500;color:var(--red);line-height:1.2}
+.bazi-cell .dz{font-size:16px;color:var(--ink);line-height:1.3}
+.bazi-cell .extra{font-size:10px;color:var(--ink-muted);margin-top:2px}
+
+/* 五行条 */
+.wx-row{display:flex;align-items:center;gap:8px;margin:6px 0}
+.wx-label{width:22px;font-size:13px;font-weight:500;text-align:center;flex-shrink:0}
+.wx-track{flex:1;height:10px;background:var(--paper);border-radius:5px;overflow:hidden}
+.wx-fill{height:100%;border-radius:5px;transition:width .6s ease}
+.wx-count{width:18px;font-size:11px;text-align:center;color:var(--ink-muted);flex-shrink:0}
+.wx-jin{color:#C9A96E}.wx-jin-bg{background:#C9A96E}
+.wx-mu{color:#4A7C59}.wx-mu-bg{background:#4A7C59}
+.wx-shui{color:#3B6F9E}.wx-shui-bg{background:#3B6F9E}
+.wx-huo{color:#C94A3A}.wx-huo-bg{background:#C94A3A}
+.wx-tu{color:#A0804A}.wx-tu-bg{background:#A0804A}
+
+/* ===== AI分析内容 ===== */
+.ai-text{line-height:2;font-size:14px;color:var(--ink-light)}
+.ai-text h3{font-size:15px;color:var(--ink);margin:18px 0 8px;letter-spacing:1px}
+.ai-text p{margin:6px 0}
+
+/* 模糊遮盖 */
+.blur-wrap{position:relative}
+.blur-wrap .blurred{filter:blur(6px);user-select:none;pointer-events:none}
+.blur-wrap .unlock-overlay{
+  position:absolute;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;z-index:10;
+  background:rgba(255,251,245,.88);
+}
+
+/* 付费锁 */
+.lock-box{
+  text-align:center;padding:24px 20px;
+  border:2px dashed var(--gold);
+  border-radius:var(--radius);margin:10px;
+}
+.lock-box .lock-icon{font-size:36px;margin-bottom:8px}
+.lock-box .lock-title{font-size:15px;font-weight:500;letter-spacing:2px;margin-bottom:6px}
+.lock-box .lock-sub{font-size:11px;color:var(--ink-muted);margin-bottom:12px;line-height:1.6}
+.lock-box .lock-price{font-size:28px;color:var(--red);font-weight:500;margin:8px 0}
+
+/* 解锁成功 */
+.unlocked-content{animation:pageIn .4s ease}
+
+/* ===== 加载 ===== */
+.loading-wrap{display:none;text-align:center;padding:48px 20px}
+.loading-wrap.active{display:block}
+.spinner{
+  width:36px;height:36px;margin:0 auto 14px;
+  border:3px solid var(--paper-dark);
+  border-top-color:var(--gold);border-radius:50%;
+  animation:spin .75s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-text{font-size:13px;color:var(--ink-muted);letter-spacing:2px}
+
+/* ===== 弹窗 ===== */
+.modal-mask{
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);
+  z-index:200;align-items:flex-end;justify-content:center;
+}
+.modal-mask.active{display:flex}
+.modal{
+  background:var(--paper-card);border-radius:var(--radius-lg) var(--radius-lg) 0 0;
+  padding:28px 22px 32px;width:100%;max-width:500px;
+  text-align:center;animation:slideUp .3s ease;
+  padding-bottom:calc(32px + var(--safe-bottom));
+}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.modal h3{font-size:17px;letter-spacing:2px;margin-bottom:6px}
+.modal .price{font-size:32px;color:var(--red);font-weight:500;margin:10px 0}
+.modal .price-note{font-size:12px;color:var(--ink-muted);margin-bottom:18px;line-height:1.6}
+.modal .qr-placeholder{
+  width:160px;height:160px;margin:0 auto 16px;
+  background:var(--paper);border:1px solid var(--paper-dark);
+  border-radius:var(--radius);display:flex;align-items:center;justify-content:center;
+  font-size:13px;color:var(--ink-muted);flex-direction:column;gap:6px;
+}
+.modal .fake-btn{margin-top:8px}
+
+/* ===== Toast ===== */
+.toast{
+  position:fixed;top:50px;left:50%;transform:translateX(-50%);
+  background:var(--ink);color:#fff;padding:10px 22px;border-radius:20px;
+  font-size:12px;z-index:300;opacity:0;transition:opacity .3s;
+  pointer-events:none;letter-spacing:1px;white-space:nowrap;
+}
+.toast.show{opacity:.92}
+
+/* ===== 宜忌标签 ===== */
+.tag{display:inline-block;padding:3px 9px;border-radius:12px;font-size:11px;margin:2px 3px}
+.tag-yi{background:rgba(74,124,89,.1);color:var(--jade)}
+.tag-ji{background:rgba(139,37,0,.06);color:var(--red)}
+
+/* ===== 页脚 ===== */
+.footer{text-align:center;padding:24px 16px 40px;font-size:11px;color:var(--ink-muted);opacity:.5;letter-spacing:1px}
+
+/* ===== 设置项 ===== */
+.set-row{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:16px 0;border-bottom:0.5px solid var(--paper-dark);
+  gap:12px;
+}
+.set-row .set-label{font-size:14px;letter-spacing:1px;flex-shrink:0}
+.set-row .set-value{font-size:12px;color:var(--ink-muted);text-align:right;word-break:break-all}
+.set-input{
+  width:180px;padding:7px 10px;border:1px solid var(--paper-dark);
+  border-radius:var(--radius-sm);font-size:11px;font-family:monospace;
+  background:var(--paper);text-align:right;
+}
+
+@media(max-width:360px){
+  .func-grid{gap:8px}
+  .func-card{padding:14px 10px}
+  .bazi-grid{gap:4px}
+  .bazi-cell{padding:10px 3px}
+  .bazi-cell .tg{font-size:18px}
+  .bazi-cell .dz{font-size:13px}
+  .hero h1{font-size:22px}
+}
+</style>
+</head>
+<body>
+<div class="toast" id="toast"></div>
+
+<!-- 付费弹窗 -->
+<div class="modal-mask" id="payModal" onclick="if(event.target===this)closePayModal()">
+  <div class="modal">
+    <h3>解锁完整命理报告</h3>
+    <div class="price">9.9元</div>
+    <div class="price-note">一次付费 · 永久有效<br>包含完整AI命理解读</div>
+    <img src="https://sc02.alicdn.com/kf/Hb35e2e1c872645fdb5f35a183b9b14b6f.jpg" alt="支付宝收款码" style="width:180px;height:180px;border-radius:8px;display:block;margin:0 auto 8px;">
+    <div style="font-size:12px;color:var(--ink-muted);margin-bottom:12px;">支付宝扫码支付 9.9 元后<br>点击下方按钮即可解锁</div>
+    <button class="btn btn-gold btn-sm" onclick="simulatePay()">我已支付，立即解锁</button>
+    <button class="btn btn-outline btn-sm fake-btn" onclick="closePayModal()">暂不需要</button>
+  </div>
+</div>
+
+<!-- ========== 首页 ========== -->
+<div class="page active" id="p-home">
+  <div class="hero">
+    <div class="logo">命</div>
+    <h1>玄 机 阁</h1>
+    <div class="sub">知命 · 顺势 · 悟道</div>
+  </div>
+
+  <div class="daily-banner" onclick="nav('daily')">
+    <div class="day-label">今 日 运 势</div>
+    <div class="day-text" id="homeFortune">点击查看今日运势</div>
+    <div class="day-date" id="homeDate"></div>
+  </div>
+
+  <div class="func-grid">
+    <div class="func-card" onclick="nav('bazi')">
+      <div class="fc-icon">☯</div>
+      <div class="fc-name">八字排盘</div>
+      <div class="fc-desc">四柱八字 · 五行分布</div>
+      <span class="badge badge-free">免费</span>
+    </div>
+    <div class="func-card" onclick="nav('bazi')">
+      <div class="fc-icon">🔮</div>
+      <div class="fc-name">AI命理解读</div>
+      <div class="fc-desc">事业财运 · 感情婚姻</div>
+      <span class="badge badge-pro">深度</span>
+    </div>
+    <div class="func-card" onclick="nav('daily')">
+      <div class="fc-icon">📅</div>
+      <div class="fc-name">每日运势</div>
+      <div class="fc-desc">黄历宜忌 · 吉凶方位</div>
+      <span class="badge badge-free">免费</span>
+    </div>
+    <div class="func-card" onclick="nav('tarot')">
+      <div class="fc-icon">🏮</div>
+      <div class="fc-name">灵签占卜</div>
+      <div class="fc-desc">心中所问 · 一签解惑</div>
+      <span class="badge badge-free">免费</span>
+    </div>
+  </div>
+
+  <div class="func-card" onclick="nav('settings')" style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+    <span style="font-size:22px;">⚙</span>
+    <div>
+      <div style="font-size:14px;font-weight:500;">设置</div>
+      <div style="font-size:11px;color:var(--ink-muted);">API密钥 · 关于</div>
+    </div>
+  </div>
+
+  <div class="footer">玄机阁 · AI命理大师<br>仅供娱乐参考 · 请理性看待</div>
+</div>
+
+<!-- ========== 八字页 ========== -->
+<div class="page" id="p-bazi">
+  <div class="nav">
+    <div class="nav-btn" onclick="nav('home')">←</div>
+    <div class="nav-title">八字排盘</div>
+    <div class="nav-btn" onclick="sharePage('八字排盘')" style="font-size:15px">↗</div>
+  </div>
+
+  <div class="card" id="baziFormCard">
+    <div class="card-title">请输入出生信息</div>
+    <div class="form-group"><label>姓名（选填）</label><input class="form-input" id="baziName" placeholder="输入你的名字"></div>
+    <div class="form-group"><label>性别</label><select class="form-input" id="baziGender"><option value="male">男</option><option value="female">女</option></select></div>
+    <div class="form-row">
+      <div class="form-group"><label>出生年份</label><select class="form-input" id="baziYear"></select></div>
+      <div class="form-group"><label>月份</label><select class="form-input" id="baziMonth"></select></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>日期</label><select class="form-input" id="baziDay"></select></div>
+      <div class="form-group"><label>时辰</label><select class="form-input" id="baziHour"></select></div>
+    </div>
+    <button class="btn btn-primary" onclick="calcBazi()" style="margin-top:6px">开 始 排 盘</button>
+  </div>
+
+  <div class="loading-wrap" id="baziLoading">
+    <div class="spinner"></div>
+    <div class="loading-text">命盘推演中...</div>
+  </div>
+
+  <div id="baziResult"></div>
+</div>
+
+<!-- ========== 每日运势页 ========== -->
+<div class="page" id="p-daily">
+  <div class="nav">
+    <div class="nav-btn" onclick="nav('home')">←</div>
+    <div class="nav-title">每日运势</div>
+    <div class="nav-btn" onclick="sharePage('每日运势')" style="font-size:15px">↗</div>
+  </div>
+  <div id="dailyContent"></div>
+</div>
+
+<!-- ========== 灵签页 ========== -->
+<div class="page" id="p-tarot">
+  <div class="nav">
+    <div class="nav-btn" onclick="nav('home')">←</div>
+    <div class="nav-title">灵签占卜</div>
+    <div class="nav-spacer"></div>
+  </div>
+  <div id="tarotContent"></div>
+</div>
+
+<!-- ========== 设置页 ========== -->
+<div class="page" id="p-settings">
+  <div class="nav">
+    <div class="nav-btn" onclick="nav('home')">←</div>
+    <div class="nav-title">设置</div>
+    <div class="nav-spacer"></div>
+  </div>
+
+  <div class="card" style="margin-top:16px">
+    <div class="card-title">API 配置</div>
+    <p style="font-size:12px;color:var(--ink-muted);line-height:1.8;margin-bottom:16px;">
+      在 <strong>platform.deepseek.com</strong> 注册并获取API密钥，填入下方即可启用AI命理解读。新用户通常有免费额度。
+    </p>
+    <div class="form-group">
+      <label>DeepSeek API Key</label>
+      <input class="form-input" id="apiKeyInput" type="password" placeholder="sk-xxxxxxxxxxxxxxxx" style="font-family:monospace;font-size:12px;">
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-primary btn-sm" onclick="saveApiKey()" style="flex:1">保 存</button>
+      <button class="btn btn-outline btn-sm" onclick="toggleApiKeyVisibility()" style="flex:0;min-width:40px">👁</button>
+    </div>
+    <div style="margin-top:8px;font-size:11px;color:var(--jade);" id="apiKeyStatus"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">关于玄机阁</div>
+    <p style="font-size:13px;line-height:2;color:var(--ink-light);text-align:center;">
+      AI驱动的命理分析工具<br>
+      融合传统八字命理与现代AI技术<br>
+      为您提供专业的命理解读服务
+    </p>
+    <div style="text-align:center;margin-top:14px;font-size:11px;color:var(--ink-muted);">
+      版本 1.0 · 仅供娱乐参考<br>
+      理性看待命理 · 命运在自己手中
+    </div>
+  </div>
+</div>
+
+<script>
+// ==================== 配置 ====================
+const C = {
+  get key() { return localStorage.getItem('xk_api_key') || '' },
+  set key(v) { localStorage.setItem('xk_api_key', v) },
+  apiUrl: 'https://api.deepseek.com/v1/chat/completions',
+  price: '9.9'
+};
+
+// ==================== 导航 ====================
+function nav(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  const el = document.getElementById('p-' + page);
+  if (!el) return;
+  el.classList.add('active');
+  window.scrollTo(0, 0);
+
+  if (page === 'bazi') initBaziPage();
+  if (page === 'daily') initDaily();
+  if (page === 'tarot') initTarot();
+  if (page === 'settings') initSettings();
+}
+
+function toast(msg, dur = 1800) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(t._tid);
+  t._tid = setTimeout(() => t.classList.remove('show'), dur);
+}
+
+// ==================== 分享 ====================
+function sharePage(title) {
+  const url = window.location.href;
+  const text = `【玄机阁】${title} - AI命理大师，知命顺势悟道`;
+  if (navigator.share) {
+    navigator.share({ title: '玄机阁', text, url }).catch(() => {});
+  } else {
+    navigator.clipboard.writeText(text + '\n' + url).then(() => {
+      toast('链接已复制，可粘贴分享给朋友');
+    }).catch(() => toast('分享失败，请手动复制链接'));
+  }
+}
+
+// ==================== 付费弹窗 ====================
+let _payCallback = null;
+
+function showPayModal(onSuccess) {
+  _payCallback = onSuccess;
+  document.getElementById('payModal').classList.add('active');
+}
+
+function closePayModal() {
+  document.getElementById('payModal').classList.remove('active');
+  _payCallback = null;
+}
+
+function simulatePay() {
+  closePayModal();
+  toast('解锁成功！正在生成完整报告...');
+  if (_payCallback) {
+    setTimeout(() => _payCallback(), 400);
+  }
+}
+
+// ==================== AI 调用 ====================
+async function callAI(prompt, sysPrompt) {
+  if (!C.key) { toast('请先在设置中填入API密钥'); return null }
+  try {
+    const r = await fetch(C.apiUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + C.key },
+      body: JSON.stringify({
+        model: 'deepseek-chat',
+        messages: [
+          { role: 'system', content: sysPrompt || '你是一位精通八字命理、五行生克的中国传统玄学大师。回答需专业、有深度，风格古朴典雅，分点清晰。' },
+          { role: 'user', content: prompt }
+        ],
+        temperature: 0.85, max_tokens: 2500
+      })
+    });
+    const d = await r.json();
+    if (d.choices?.[0]) return d.choices[0].message.content;
+    throw new Error(d.error?.message || '未知错误');
+  } catch (e) {
+    console.error(e);
+    toast('AI暂时不可用: ' + (e.message || '网络异常'));
+    return null;
+  }
+}
+
+// ==================== 八字计算 ====================
+const TG = ['甲','乙','丙','丁','戊','己','庚','辛','壬','癸'];
+const DZ = ['子','丑','寅','卯','辰','巳','午','未','申','酉','戌','亥'];
+const SX = ['鼠','牛','虎','兔','龙','蛇','马','羊','猴','鸡','狗','猪'];
+const WXTG = ['木','木','火','火','土','土','金','金','水','水'];
+const WXDZ = ['水','土','木','木','土','火','火','土','金','金','土','水'];
+const WX_NAMES = ['金','木','水','火','土'];
+
+function yearPillar(y) {
+  const o = ((y - 1984) % 60 + 60) % 60;
+  return { tg: TG[o%10], dz: DZ[o%12], sx: SX[o%12], ti: o%10, di: o%12 };
+}
+
+function monthPillar(y, m) {
+  // 年上起月法：五虎遁
+  // 甲己→丙寅 乙庚→戊寅 丙辛→庚寅 丁壬→壬寅 戊癸→甲寅
+  const ytg = yearPillar(y).ti;
+  const groupMap = [0,1,2,3,4,0,1,2,3,4]; // ti→五虎遁分组
+  const startTG = [2,4,6,8,0]; // 寅月天干起始: 丙戊庚壬甲
+  const grp = groupMap[ytg];
+  const ti = (startTG[grp] + (m - 1)) % 10;
+  const di = (m + 1) % 12; // 寅月=地支索引2
+  return { tg: TG[ti], dz: DZ[di], ti, di };
+}
+
+function dayPillar(y, m, d) {
+  let days = 0;
+  if (y < 2000) {
+    for (let yy = 1900; yy < y; yy++) days += isLeap(yy) ? 366 : 365;
+    days += 31;
+  } else {
+    for (let yy = 2000; yy < y; yy++) days += isLeap(yy) ? 366 : 365;
+    days += 39;
+  }
+  const md = [0,31,28,31,30,31,30,31,31,30,31,30,31];
+  for (let mm = 1; mm < m; mm++) { days += md[mm]; if (mm===2 && isLeap(y)) days++; }
+  days += d - 1;
+  return { tg: TG[days%10], dz: DZ[days%12], ti: days%10, di: days%12 };
+}
+
+function hourPillar(dtg, h) {
+  // 日上起时法：五鼠遁。h是select索引(0-11)直对地支
+  const di = h;
+  const groupMap = [0,1,2,3,4,0,1,2,3,4];
+  const startTG = [0,2,4,6,8]; // 子时天干: 甲丙戊庚壬
+  const grp = groupMap[dtg];
+  const ti = (startTG[grp] + di) % 10;
+  return { tg: TG[ti], dz: DZ[di], ti, di };
+}
+
+function isLeap(y) { return y%4===0 && (y%100!==0 || y%400===0); }
+
+function countWX(yp, mp, dp, hp) {
+  const c = {}; WX_NAMES.forEach(w => c[w]=0);
+  [yp,mp,dp,hp].forEach(p => { c[WXTG[p.ti]]++; c[WXDZ[p.di]]++ });
+  return c;
+}
+
+// ==================== 八字页面 ====================
+let _baziData = null;
+let _isUnlocked = false;
+
+function initBaziPage() {
+  const ys = document.getElementById('baziYear');
+  const ms = document.getElementById('baziMonth');
+  const ds = document.getElementById('baziDay');
+  const hs = document.getElementById('baziHour');
+
+  if (ys.options.length === 0) {
+    for (let y=2024;y>=1940;y--) ys.add(new Option(y+'年',y));
+    for (let m=1;m<=12;m++) ms.add(new Option(m+'月',m));
+    for (let d=1;d<=31;d++) ds.add(new Option(d+'日',d));
+    ['子时 (23:00-01:00)','丑时 (01:00-03:00)','寅时 (03:00-05:00)','卯时 (05:00-07:00)',
+     '辰时 (07:00-09:00)','巳时 (09:00-11:00)','午时 (11:00-13:00)','未时 (13:00-15:00)',
+     '申时 (15:00-17:00)','酉时 (17:00-19:00)','戌时 (19:00-21:00)','亥时 (21:00-23:00)']
+    .forEach((h,i) => hs.add(new Option(h,i)));
+  }
+
+  ys.value = '1990'; ms.value = '1'; ds.value = '1'; hs.value = '0';
+  document.getElementById('baziFormCard').style.display = 'block';
+  document.getElementById('baziLoading').classList.remove('active');
+  document.getElementById('baziResult').innerHTML = '';
+  _baziData = null; _isUnlocked = false;
+}
+
+async function calcBazi() {
+  const y = +document.getElementById('baziYear').value;
+  const m = +document.getElementById('baziMonth').value;
+  const d = +document.getElementById('baziDay').value;
+  const hi = +document.getElementById('baziHour').value;
+  const name = document.getElementById('baziName').value || '未具名';
+  const gender = document.getElementById('baziGender').value;
+
+  const yp = yearPillar(y), mp = monthPillar(y,m), dp = dayPillar(y,m,d), hp = hourPillar(dp.ti, hi);
+  const wx = countWX(yp,mp,dp,hp);
+  const wxMax = Math.max(...Object.values(wx),1);
+
+  _baziData = { y,m,d,hi,name,gender,yp,mp,dp,hp,wx };
+
+  document.getElementById('baziFormCard').style.display = 'none';
+  document.getElementById('baziLoading').classList.add('active');
+  document.getElementById('baziResult').innerHTML = '';
+
+  // 构建八字盘
+  const wxColors = { '金':'jin','木':'mu','水':'shui','火':'huo','土':'tu' };
+
+  let html = `
+    <div class="card">
+      <div class="card-title">八字命盘</div>
+      <div style="text-align:center;font-size:12px;color:var(--ink-muted);margin-bottom:6px">
+        ${name} · ${gender==='male'?'乾造':'坤造'} · ${y}年${m}月${d}日
+      </div>
+      <div class="bazi-grid">
+        <div class="bazi-cell">
+          <div class="pillar">年柱</div><div class="tg">${yp.tg}</div><div class="dz">${yp.dz}</div>
+          <div class="extra">${yp.sx}</div>
+        </div>
+        <div class="bazi-cell">
+          <div class="pillar">月柱</div><div class="tg">${mp.tg}</div><div class="dz">${mp.dz}</div>
+        </div>
+        <div class="bazi-cell">
+          <div class="pillar">日柱</div><div class="tg">${dp.tg}</div><div class="dz">${dp.dz}</div>
+          <div class="extra" style="color:var(--red)">日元</div>
+        </div>
+        <div class="bazi-cell">
+          <div class="pillar">时柱</div><div class="tg">${hp.tg}</div><div class="dz">${hp.dz}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">五行分布</div>
+      ${WX_NAMES.map(w => `
+        <div class="wx-row">
+          <div class="wx-label wx-${wxColors[w]}">${w}</div>
+          <div class="wx-track"><div class="wx-fill wx-${wxColors[w]}-bg" style="width:${(wx[w]/wxMax*100)}%"></div></div>
+          <div class="wx-count">${wx[w]}</div>
+        </div>
+      `).join('')}
+      <div style="text-align:center;margin-top:12px;font-size:13px;color:var(--ink-muted)">
+        日主 <strong style="color:var(--red)">${dp.tg}</strong>（${WXTG[dp.ti]}命）
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">AI命理深度解读</div>
+      <div id="aiContentArea">
+        <div class="loading-wrap active">
+          <div class="spinner"></div>
+          <div class="loading-text">AI解命中...</div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('baziResult').innerHTML = html;
+  document.getElementById('baziLoading').classList.remove('active');
+
+  // 生成简短预览
+  const shortPrompt = `为以下八字写1-2句极简命格概述（30字以内，古风）：
+
+出生：${y}年${m}月${d}日 ${DZ[hi]}时
+八字：年${yp.tg}${yp.dz} 月${mp.tg}${mp.dz} 日${dp.tg}${dp.dz} 时${hp.tg}${hp.dz}
+日主${dp.tg}（${WXTG[dp.ti]}命），五行：${JSON.stringify(wx)}`;
+
+  const short = await callAI(shortPrompt, '你是命理大师。只输出一句30字以内的古风命格概述，不要任何前缀和解释。');
+
+  document.getElementById('aiContentArea').innerHTML = `
+    <div class="blur-wrap">
+      <div style="font-size:14px;line-height:2;color:var(--ink);text-align:center;padding:8px 0 16px;border-bottom:1px solid var(--paper-dark);margin-bottom:12px;">
+        ${short || '命盘已生成，AI正在解读...'}
+      </div>
+      <div class="blurred">
+        <div class="ai-text" style="min-height:200px">
+          <h3>一、命格总论</h3><p>需要解锁后查看完整命格分析...</p>
+          <h3>二、事业财运</h3><p>需要解锁后查看详细事业财运分析...</p>
+          <h3>三、感情婚姻</h3><p>需要解锁后查看感情婚姻分析...</p>
+          <h3>四、健康运势</h3><p>需要解锁后查看健康运势分析...</p>
+          <h3>五、流年大运</h3><p>需要解锁后查看流年大运分析...</p>
+        </div>
+      </div>
+      <div class="unlock-overlay">
+        <div class="lock-box">
+          <div class="lock-icon">🔒</div>
+          <div class="lock-title">解锁完整命理报告</div>
+          <div class="lock-sub">包含：命格总论 · 事业财运 · 感情婚姻<br>健康运势 · 流年大运分析</div>
+          <div class="lock-price">9.9元</div>
+          <button class="btn btn-gold" onclick="unlockFullReport()" style="margin-top:4px">立即解锁完整报告</button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  _isUnlocked = false;
+}
+
+async function unlockFullReport() {
+  showPayModal(async () => {
+    if (!_baziData) return;
+    const d = _baziData;
+
+    const fullPrompt = `请基于以下八字信息，撰写一份完整的命理分析报告。分五个部分，每部分200-300字，风格古朴专业：
+
+出生：${d.y}年${d.m}月${d.d}日 ${DZ[d.hi]}时
+性别：${d.gender==='male'?'男':'女'}
+八字四柱：年${d.yp.tg}${d.yp.dz} 月${d.mp.tg}${d.mp.dz} 日${d.dp.tg}${d.dp.dz} 时${d.hp.tg}${d.hp.dz}
+日主：${d.dp.tg}（${WXTG[d.dp.ti]}命）
+五行统计：${JSON.stringify(d.wx)}
+
+请按以下格式输出（每个部分用标题"一、""二、"等标记）：
+
+一、命格总论：分析整体命格特点、日主强弱、五行喜忌
+二、事业财运：分析事业方向、财运趋势、适合行业
+三、感情婚姻：分析感情运势、婚姻状况、注意事项
+四、健康运势：分析身体健康、易患疾病、养生建议
+五、流年大运：分析大运走势、关键年份、人生转折点`;
+
+    document.getElementById('aiContentArea').innerHTML = `
+      <div class="loading-wrap active">
+        <div class="spinner"></div>
+        <div class="loading-text">AI正在为您生成完整命理报告...</div>
+      </div>
+    `;
+
+    const fullText = await callAI(fullPrompt);
+    if (!fullText) {
+      document.getElementById('aiContentArea').innerHTML = '<p style="text-align:center;color:var(--ink-muted);padding:20px;">AI服务暂时不可用，请稍后重试</p>';
+      return;
+    }
+
+    // 渲染完整报告
+    const formatted = fullText
+      .replace(/^[#*]+\s*(.+)$/gm, '<h3>$1</h3>')
+      .replace(/\n/g, '<br>');
+
+    document.getElementById('aiContentArea').innerHTML = `
+      <div class="unlocked-content">
+        <div class="ai-text">${formatted}</div>
+        <div style="text-align:center;margin-top:20px;padding:12px;background:rgba(74,124,89,.08);border-radius:var(--radius-sm);">
+          <span style="color:var(--jade);font-size:12px;">✓ 已解锁完整命理报告</span>
+        </div>
+      </div>
+    `;
+
+    _isUnlocked = true;
+    window.scrollTo({ top: document.getElementById('aiContentArea').offsetTop - 80, behavior: 'smooth' });
+  });
+}
+
+// ==================== 每日运势 ====================
+function initDaily() {
+  const now = new Date();
+  const ds = `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日 星期${['日','一','二','三','四','五','六'][now.getDay()]}`;
+
+  const seed = now.getFullYear()*1e4 + (now.getMonth()+1)*100 + now.getDate();
+  const rng = n => { const x = Math.sin(seed*n+1)*1e4; return x-Math.floor(x); };
+
+  const fortunes = [
+    { lab:'大吉', ico:'☀', col:'#C9A96E' },
+    { lab:'吉',   ico:'🌤', col:'#4A7C59' },
+    { lab:'中平', ico:'⛅', col:'#3B6F9E' },
+    { lab:'小凶', ico:'🌧', col:'#A0804A' },
+    { lab:'凶',   ico:'⛈', col:'#C94A3A' }
+  ];
+
+  const yiPool = ['祭祀','嫁娶','开市','交易','出行','纳财','入学','求嗣','会友','订盟','纳采','修造','动土','安床','移徙','入宅'];
+  const jiPool = ['开仓','出货','伐木','作梁','行丧','安葬','立碑','词讼','上梁','盖屋','破土','启钻','除服'];
+
+  const oi = Math.floor(rng(1)*5);
+  const dims = [
+    ['💼 事业', Math.floor(rng(2)*5)],
+    ['❤ 感情', Math.floor(rng(3)*5)],
+    ['💰 财运', Math.floor(rng(4)*5)],
+    ['🏥 健康', Math.floor(rng(5)*5)]
+  ];
+
+  const lc = ['红色','金色','墨绿','白色','蓝色','黄色','紫色','青色'];
+  const ln = ['3, 8','1, 6','4, 9','2, 7','5, 0'];
+  const dir = ['正东','东南','正南','西南','正西','西北','正北','东北'];
+
+  const yiN = 2+Math.floor(rng(6)*4);
+  const jiN = 2+Math.floor(rng(7)*3);
+
+  document.getElementById('dailyContent').innerHTML = `
+    <div class="daily-banner" style="cursor:default;margin-top:16px">
+      <div class="day-label">${ds}</div>
+      <div class="day-text" style="font-size:20px;margin:10px 0">${fortunes[oi].ico} 今日运势：<span style="color:${fortunes[oi].col}">${fortunes[oi].lab}</span></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">今日宜忌</div>
+      <div style="margin-bottom:12px">
+        <div style="color:var(--jade);font-weight:500;font-size:13px;margin-bottom:6px;">宜</div>
+        <div>${[...yiPool].sort(()=>rng(8)-.5).slice(0,yiN).map(t=>`<span class="tag tag-yi">${t}</span>`).join('')}</div>
+      </div>
+      <div>
+        <div style="color:var(--red);font-weight:500;font-size:13px;margin-bottom:6px;">忌</div>
+        <div>${[...jiPool].sort(()=>rng(9)-.5).slice(0,jiN).map(t=>`<span class="tag tag-ji">${t}</span>`).join('')}</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">各维度运势</div>
+      ${dims.map(([lab, idx]) => `
+        <div class="wx-row" style="margin:10px 0">
+          <div class="wx-label" style="width:56px;font-size:13px;">${lab}</div>
+          <div class="wx-track" style="height:12px;border-radius:6px">
+            <div class="wx-fill" style="width:${(5-idx)*20}%;background:${fortunes[idx].col};border-radius:6px"></div>
+          </div>
+          <span style="font-size:12px;color:${fortunes[idx].col};font-weight:500;width:28px;text-align:center">${fortunes[idx].lab}</span>
+        </div>
+      `).join('')}
+    </div>
+
+    <div class="card">
+      <div class="card-title">幸运指南</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:13px">
+        ${[
+          ['幸运色', lc[Math.floor(rng(10)*lc.length)]],
+          ['幸运数字', ln[Math.floor(rng(11)*ln.length)]],
+          ['贵人方位', dir[Math.floor(rng(12)*dir.length)]],
+          ['吉时', DZ[Math.floor(rng(13)*12)]+'时']
+        ].map(([l,v]) => `
+          <div style="text-align:center;padding:8px;background:var(--paper);border-radius:var(--radius-sm)">
+            <div style="color:var(--ink-muted);font-size:11px;margin-bottom:4px">${l}</div>
+            <div style="font-size:15px;font-weight:500">${v}</div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+}
+
+// ==================== 灵签占卜 ====================
+const QIAN = [
+  { n:'第一签', lv:'上上签', p:'龙腾云海任遨游，万里鹏程志未休。\n待到春风桃李日，金榜题名占鳌头。', m:'大吉大利，所求之事终将如愿。宜积极进取，把握良机。' },
+  { n:'第二签', lv:'中平签', p:'静待花开自有期，莫因风雨怨春迟。\n且将心事付流水，明月清风会有时。', m:'宜守成，不宜急进。静待时机，顺其自然。' },
+  { n:'第三签', lv:'上吉签', p:'玉在椟中求善价，钗于奁内待时飞。\n天公不负有心人，一朝得志展雄威。', m:'才华将得施展。困顿即将过去，贵人出现。' },
+  { n:'第四签', lv:'中吉签', p:'青山不老水长流，世事如棋局未休。\n得失成败皆有定，莫将荣辱挂心头。', m:'看淡得失。万事有定数，心态平和最重要。' },
+  { n:'第五签', lv:'上上签', p:'凤栖梧桐百鸟朝，麒麟送子降云霄。\n善缘广结福星照，家宅安康万事宜。', m:'家庭和睦，福气临门。家宅平安，万事顺遂。' },
+  { n:'第六签', lv:'下下签', p:'逆水行舟用力撑，一篙松劲退千寻。\n劝君更尽一杯酒，守得云开见月明。', m:'暂时困顿。韬光养晦，坚守本心，终会迎来转机。' },
+  { n:'第七签', lv:'中吉签', p:'春蚕到死丝方尽，蜡炬成灰泪始干。\n待到山花烂漫时，她在丛中笑更欢。', m:'付出终有回报。坚持到底，必有收获。' },
+  { n:'第八签', lv:'上吉签', p:'大鹏一日同风起，扶摇直上九万里。\n假令风歇时下来，犹能簸却沧溟水。', m:'事业腾飞。大展宏图之象，把握当前良机。' },
+];
+
+function initTarot() {
+  document.getElementById('tarotContent').innerHTML = `
+    <div class="card" style="margin-top:16px">
+      <div class="card-title">心中默念所求之事</div>
+      <p style="text-align:center;color:var(--ink-muted);font-size:13px;line-height:2;margin-bottom:16px">
+        静心凝神，默念所问之事<br>然后从下方签筒中抽取一签
+      </p>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px" id="qianGrid">
+        ${[0,1,2,3,4,5,6,7].map(i => `
+          <div class="func-card" style="aspect-ratio:3/4;display:flex;align-items:center;justify-content:center;padding:0;background:linear-gradient(135deg,#1a1a2e,#2d1b3d);border:none" onclick="drawQian(${i})" id="qc${i}">
+            <span style="font-size:28px;color:rgba(201,169,110,.7)">签</span>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+    <div id="qianResult"></div>
+  `;
+}
+
+function drawQian(idx) {
+  const q = QIAN[Math.floor(Math.random()*QIAN.length)];
+  const card = document.getElementById('qc'+idx);
+  if (card) {
+    card.style.border = '2px solid var(--gold)';
+    card.style.transform = 'scale(1.05)';
+  }
+
+  const lvColors = { '上上签':'var(--red)','上吉签':'var(--gold-dark)','中吉签':'var(--jade)','中平签':'var(--ink-muted)','下下签':'var(--ink-muted)' };
+
+  document.getElementById('qianResult').innerHTML = `
+    <div class="card" style="animation:pageIn .4s ease">
+      <div class="card-title">${q.n} · <span style="color:${lvColors[q.lv]}">${q.lv}</span></div>
+      <div style="font-size:15px;line-height:2.4;color:var(--ink);text-align:center;padding:12px 0;border-bottom:1px solid var(--paper-dark);margin-bottom:14px;font-style:italic">
+        ${q.p.replace(/\n/g,'<br>')}
+      </div>
+      <div style="font-size:13px;line-height:2;color:var(--ink-light)">
+        <strong>解签：</strong>${q.m}
+      </div>
+      <button class="btn btn-outline btn-sm" onclick="initTarot()" style="margin-top:18px">再求一签</button>
+    </div>
+  `;
+}
+
+// ==================== 设置页 ====================
+function initSettings() {
+  document.getElementById('apiKeyInput').value = C.key;
+  updateApiKeyStatus();
+}
+
+function saveApiKey() {
+  C.key = document.getElementById('apiKeyInput').value.trim();
+  updateApiKeyStatus();
+  toast(C.key ? 'API密钥已保存' : 'API密钥已清除');
+}
+
+function toggleApiKeyVisibility() {
+  const el = document.getElementById('apiKeyInput');
+  el.type = el.type === 'password' ? 'text' : 'password';
+}
+
+function updateApiKeyStatus() {
+  const el = document.getElementById('apiKeyStatus');
+  el.textContent = C.key ? '✓ API密钥已配置' : '尚未配置API密钥，AI功能不可用';
+}
+
+// ==================== 首页初始化 ====================
+(function init() {
+  document.getElementById('homeDate').textContent =
+    `${new Date().getFullYear()}年${new Date().getMonth()+1}月${new Date().getDate()}日`;
+  document.getElementById('homeFortune').textContent = '点击查看今日运势 →';
+})();
+</script>
+</body>
+</html>

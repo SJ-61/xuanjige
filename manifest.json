@@ -1,0 +1,16 @@
+{
+  "name": "玄机阁 - AI命理大师",
+  "short_name": "玄机阁",
+  "description": "AI驱动的八字排盘与命理解读",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#F4EFE6",
+  "theme_color": "#8B2500",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%238B2500'/><text x='50' y='68' font-size='55' text-anchor='middle' fill='white' font-family='serif'>命</text></svg>",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
